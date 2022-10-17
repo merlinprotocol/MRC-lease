@@ -2,8 +2,9 @@ const { ethers } = require('hardhat')
 const { expect } = require('chai')
 
 async function func() {
-  const { _, getNamedAccounts } = hre
+  const { getNamedAccounts } = hre
   const { deployer } = await getNamedAccounts()
+  const [_, leaser] = await ethers.getSigners()
 
   const usdtTotalSupply = ethers.utils.parseEther('10000000')
   const usdtDecimals = 18
@@ -66,88 +67,74 @@ async function func() {
     tx = await nft.setApprovalForAll(pool.address, true)
     await tx.wait()
   }
-/*
-  for (let i = 0; i < 10; ++i) {
-    const tokenId = await nft.nextId()
-    tx = await nft.mint(deployer)
-    await tx.wait()
 
-    const supplyBefore = await pool.totalSupply()
-    tx = await pool.supply([nft.address], [tokenId])
-    await tx.wait()
+  const tokenId = await nft.nextId()
+  tx = await nft.mint(deployer)
+  await tx.wait()
 
-    const supplyAfter = await pool.totalSupply()
-    // expect(supplyAfter).to.eq(share.add(supplyBefore))
+  tx = await pool.supply([nft.address], [tokenId])
+  await tx.wait()
 
-    // const leaseAmount = share.div(10)
+  const totalSupply = await pool.totalSupply()
+  const leaseAmount = totalSupply.div(10)
 
-    if ((await usdt.allowance(deployer, leaser.address)).lt(leaseAmount)) {
-      tx = await usdt.connect(leaser).approve(pool.address, ethers.constants.MaxUint256)
-      await tx.wait()
-    }
-
-    let balance = await usdt.balanceOf(deployer)
-    if (balance.gt(0)) {
-      tx = await usdt.transfer(leaser.address, balance)
-      await tx.wait()
-    }
-
-    const totalLeaseAmountBefore = await pool.totalLeaseAmount()
-    const period = 100
-    tx = await pool.connect(leaser).lease(leaseAmount, period)
-    await tx.wait()
-    const totalLeaseAmountAfter = await pool.totalLeaseAmount()
-    expect(totalLeaseAmountAfter).to.eq(totalLeaseAmountBefore.add(leaseAmount))
-
-    const leasePrice = await pool.getLeasePrice(0, 0)
-    console.log('leasePrice', ethers.utils.formatEther(leasePrice))
-
-    {
-      // const leasePrice = await pool.getLeasePrice(share, 0)
-      console.log('leasePrice', ethers.utils.formatEther(leasePrice))
-    }
-    // const leaseRate = await model.getLeaseRate()
-    // expect(leasePrice).to.eq(leaseAmount.mul(leaseRate))
-
-    // let blockTime = (await ethers.provider.getBlock()).timestamp + 120
-    // await network.provider.send("evm_setNextBlockTimestamp", [blockTime]);
-
-    for (let i = 0; i < 10; ++i) { // 
-      tx = await usdt.approve(usdt.address, 0)
-      await tx.wait()
-    }
-
-    // const user = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266'
-    const user = deployer
-    const pendingProfit = await pool.pendingProfit(user)
-    console.log('pendingProfit', ethers.utils.formatEther(pendingProfit))
-
-    const marginLeft = await pool.marginLeft(leaser.address)
-    console.log('marginLeft', ethers.utils.formatEther(marginLeft))
-
-    const userLeaseInfo = await pool.userLeaseInfo(leaser.address)
-    console.log('userLeaseInfo', ethers.utils.formatEther(userLeaseInfo._share), ethers.utils.formatEther(userLeaseInfo._margin))
-    expect(userLeaseInfo._share).to.eq(leaseAmount)
-
-    if (i % 2 == 0) {
-      tx = await pool.connect(leaser).lease(0, 0)
-      await tx.wait()
-      console.log('abortLease')
-    } else {
-      tx = await pool.cancelLease([leaser.address])
-      await tx.wait()
-      console.log('cancelLease')
-    }
-
-    tx = await pool.redeem([nft.address], [tokenId])
-    await tx.wait()
-    console.log('redeem')
-    expect(await pool.totalSupply()).to.eq(0)
-
-    tx = await pool.claimSupplyProfit()
+  if ((await usdt.allowance(deployer, leaser.address)).lt(leaseAmount)) {
+    tx = await usdt.connect(leaser).approve(pool.address, ethers.constants.MaxUint256)
     await tx.wait()
   }
-  */
+
+  let balance = await usdt.balanceOf(deployer)
+  if (balance.gt(0)) {
+    tx = await usdt.transfer(leaser.address, balance)
+    await tx.wait()
+  }
+
+  const totalLeaseAmountBefore = await pool.totalLeaseAmount()
+  const period = 100
+  tx = await pool.connect(leaser).lease(leaseAmount, period)
+  await tx.wait()
+
+  const totalLeaseAmountAfter = await pool.totalLeaseAmount()
+  expect(totalLeaseAmountAfter).to.eq(totalLeaseAmountBefore.add(leaseAmount))
+
+  const leasePrice = await pool.getLeasePrice(0, 0)
+  console.log('leasePrice', ethers.utils.formatEther(leasePrice))
+
+  for (let i = 0; i < 10; ++i) { // mining
+    tx = await usdt.approve(usdt.address, 0)
+    await tx.wait()
+  }
+
+  const user = deployer
+  const pendingProfit = await pool.pendingProfit(user)
+  console.log('pendingProfit', ethers.utils.formatEther(pendingProfit))
+
+  const marginLeft = await pool.marginLeft(leaser.address)
+  console.log('marginLeft', ethers.utils.formatEther(marginLeft))
+
+  const userLeaseInfo = await pool.userLeaseInfo(leaser.address)
+  console.log('userLeaseInfo', ethers.utils.formatEther(userLeaseInfo._share), ethers.utils.formatEther(userLeaseInfo._margin))
+  expect(userLeaseInfo._share).to.eq(leaseAmount)
+
+  // tx = await pool.connect(leaser).lease(0, 0)
+  // await tx.wait()
+  // console.log('abortLease')
+
+  // tx = await pool.cancelLease([leaser.address])
+  // await tx.wait()
+  // console.log('cancelLease')
+  // {
+  //   const userLeaseInfo = await pool.userLeaseInfo(leaser.address)
+  //   expect(userLeaseInfo._share).to.eq(0)
+  // }
+
+  // tx = await pool.redeem([nft.address], [tokenId])
+  // await tx.wait()
+  // console.log('redeem')
+  // expect(await pool.totalSupply()).to.eq(0)
+
+  tx = await pool.claimSupplyProfit()
+  await tx.wait()
 }
 
 module.exports = func

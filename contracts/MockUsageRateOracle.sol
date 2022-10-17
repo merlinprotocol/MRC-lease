@@ -12,11 +12,11 @@ contract MockUsageRateOracle is IUsageRateOracle, Ownable {
 
     constructor(address _nft) {
         nft_ = _nft;
-        usageRates_[0] = 10;
-        usageRates_[1] = 100;
-        usageRates_[2] = 500;
-        usageRates_[3] = 1000;
-        usageRates_[4] = 2000;
+        usageRates_[0] = 10e18;
+        usageRates_[1] = 100e18;
+        usageRates_[2] = 500e18;
+        usageRates_[3] = 1000e18;
+        usageRates_[4] = 2000e18;
     }
 
     function usageRateOf(uint256 tokenId) external override view returns (uint256) {
