@@ -10,4 +10,13 @@ module.exports = {
       default: 0,
     },
   },
+
+  networks: {
+    hardhat: {
+      mining: {
+        auto: true,
+        interval: 5000
+      }
+    }
+  }
 };
