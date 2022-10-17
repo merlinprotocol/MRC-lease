@@ -1,15 +1,22 @@
-import { Contract, ethers, utils, BigNumber } from 'ethers';
-import { useEthers, useContractFunction, useCall } from '@usedapp/core';
-import LeasePoolABI from '@/abis/LeasePool.json';
-import { useContractFunctionByName as useUSDTContractFunctionByName } from './usdt';
-import { useIsApprovedForAll, useContractFunctionByName as useNFTContractFunctionByName } from './erc4907';
+import { Contract, ethers, utils, BigNumber } from "ethers";
+import { useEthers, useContractFunction, useCall } from "@usedapp/core";
+import LeasePoolArt from "@/artifacts/contracts/LeasePool.sol/LeasePool.json";
+import { useContractFunctionByName as useUSDTContractFunctionByName } from "./usdt";
+import {
+  useIsApprovedForAll,
+  useContractFunctionByName as useNFTContractFunctionByName,
+} from "./erc4907";
 
 const POOL_ADDRESS = process.env.NEXT_PUBLIC_POOL_ADDRESS as string;
 const NFT_ADDRESS = process.env.NEXT_PUBLIC_NFT_ADDRESS as string;
 
 export function useContract() {
   const { account, library } = useEthers();
-  return new Contract(POOL_ADDRESS, LeasePoolABI, library?.getSigner(account).connectUnchecked());
+  return new Contract(
+    POOL_ADDRESS,
+    LeasePoolArt.abi,
+    library?.getSigner(account).connectUnchecked()
+  );
 }
 
 export function useContractFunctionByName(functionName: string) {
@@ -27,14 +34,14 @@ export function usePendingProfit(): string {
     useCall(
       account && {
         contract: contract,
-        method: 'pendingProfit',
+        method: "pendingProfit",
         args: [account],
-      },
+      }
     ) ?? {};
 
   if (error) {
     console.error(error.message);
-    return '0';
+    return "0";
   }
   return utils.formatEther(value?.[0] || 0);
 }
@@ -47,25 +54,28 @@ export function useMarginLeft(): string {
     useCall(
       account && {
         contract: contract,
-        method: 'marginLeft',
+        method: "marginLeft",
         args: [account],
-      },
+      }
     ) ?? {};
 
   if (error) {
     console.error(error.message);
-    return '0';
+    return "0";
   }
   return utils.formatEther(value?.[0] || 0);
 }
 
-export function useGetLeasePrice(_supplyAmount: string | number, _leaseAmount: string | number): BigNumber | undefined {
+export function useGetLeasePrice(
+  _supplyAmount: string | number,
+  _leaseAmount: string | number
+): BigNumber | undefined {
   const contract = useContract();
 
   const { value, error } =
     useCall({
       contract: contract,
-      method: 'getLeasePrice',
+      method: "getLeasePrice",
       args: [_supplyAmount, _leaseAmount], // TODO check params is valid
     }) ?? {};
 
@@ -75,7 +85,10 @@ export function useGetLeasePrice(_supplyAmount: string | number, _leaseAmount: s
   }
   return value?.[0];
 }
-export function useGetLeasePriceUI(_supplyAmount: string | number, _leaseAmount: string | number): string {
+export function useGetLeasePriceUI(
+  _supplyAmount: string | number,
+  _leaseAmount: string | number
+): string {
   const leasePrice = useGetLeasePrice(_supplyAmount, _leaseAmount);
   return utils.formatEther(leasePrice || 0);
 }
@@ -86,7 +99,7 @@ export function useTotalSupply(): BigNumber | undefined {
   const { value, error } =
     useCall({
       contract: contract,
-      method: 'totalSupply',
+      method: "totalSupply",
       args: [],
     }) ?? {};
 
@@ -103,7 +116,7 @@ export function useTotalLeaseAmount(): BigNumber | undefined {
   const { value, error } =
     useCall({
       contract: contract,
-      method: 'totalLeaseAmount',
+      method: "totalLeaseAmount",
       args: [],
     }) ?? {};
 
@@ -117,8 +130,9 @@ export function useTotalLeaseAmount(): BigNumber | undefined {
 //
 // ==================
 export function useCallLease() {
-  const { send: usdtApprove, state: approveState } = useUSDTContractFunctionByName('approve');
-  const { send: lease, state: leaseState } = useContractFunctionByName('lease');
+  const { send: usdtApprove, state: approveState } =
+    useUSDTContractFunctionByName("approve");
+  const { send: lease, state: leaseState } = useContractFunctionByName("lease");
 
   const callLease = async (shares: number, period: number) => {
     const tx = await usdtApprove(POOL_ADDRESS, ethers.constants.MaxInt256);
@@ -137,8 +151,10 @@ export function useCallLease() {
 
 export function useCallSupply() {
   const isApprovedForAll = useIsApprovedForAll();
-  const { send: setApprovalForAll, state: approvalState } = useNFTContractFunctionByName('setApprovalForAll');
-  const { send: supply, state: supplyState } = useContractFunctionByName('supply');
+  const { send: setApprovalForAll, state: approvalState } =
+    useNFTContractFunctionByName("setApprovalForAll");
+  const { send: supply, state: supplyState } =
+    useContractFunctionByName("supply");
 
   const callSupply = async (tokenId: string | number) => {
     if (!isApprovedForAll) {
@@ -156,7 +172,7 @@ export function useCallSupply() {
 }
 
 export function useCallRedeem() {
-  const { send: redeem, state } = useContractFunctionByName('redeem');
+  const { send: redeem, state } = useContractFunctionByName("redeem");
 
   const callReddem = async (tokenId: string | number) => {
     return await redeem([NFT_ADDRESS], [tokenId]);
@@ -169,7 +185,7 @@ export function useCallRedeem() {
 }
 
 export function useCallCancelLease() {
-  const { send: lease, state } = useContractFunctionByName('lease');
+  const { send: lease, state } = useContractFunctionByName("lease");
 
   const callCancelLease = async () => {
     return await lease(0);
@@ -192,7 +208,8 @@ export function useRentalYieldPerblock(): BigNumber {
   const totalLeaseAmount = useTotalLeaseAmount();
 
   // console.log({ leaseRate, totalSupply, totalLeaseAmount });
-  if (!leaseRate || !totalSupply || !totalLeaseAmount || totalSupply.isZero()) return BigNumber.from(0);
+  if (!leaseRate || !totalSupply || !totalLeaseAmount || totalSupply.isZero())
+    return BigNumber.from(0);
 
   return leaseRate.mul(totalLeaseAmount).div(totalSupply);
 }

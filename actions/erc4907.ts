@@ -1,13 +1,17 @@
-import { Contract } from 'ethers';
-import { useEthers, useContractFunction, useCall } from '@usedapp/core';
-import ERC4907ABI from '@/abis/ERC4907.json';
+import { Contract } from "ethers";
+import { useEthers, useContractFunction, useCall } from "@usedapp/core";
+import ERC4907Art from "@/artifacts/contracts/MockERC4907.sol/MockERC4907.json";
 
 const NFT_ADDRESS = process.env.NEXT_PUBLIC_NFT_ADDRESS as string;
 const POOL_ADDRESS = process.env.NEXT_PUBLIC_POOL_ADDRESS as string;
 
 export function useContract() {
   const { account, library } = useEthers();
-  return new Contract(NFT_ADDRESS, ERC4907ABI, library?.getSigner(account).connectUnchecked());
+  return new Contract(
+    NFT_ADDRESS,
+    ERC4907Art.abi,
+    library?.getSigner(account).connectUnchecked()
+  );
 }
 
 export function useContractFunctionByName(functionName: string) {
@@ -24,9 +28,9 @@ export function useIsApprovedForAll(): boolean {
     useCall(
       account && {
         contract: contract,
-        method: 'isApprovedForAll',
+        method: "isApprovedForAll",
         args: [account, POOL_ADDRESS],
-      },
+      }
     ) ?? {};
 
   if (error) {
