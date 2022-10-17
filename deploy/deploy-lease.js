@@ -1,5 +1,6 @@
 const { ethers } = require('hardhat')
 const { expect } = require('chai')
+const fs = require("fs");
 
 async function func() {
   const { getNamedAccounts } = hre
@@ -135,6 +136,15 @@ async function func() {
 
   tx = await pool.claimSupplyProfit()
   await tx.wait()
+
+  fs.writeFileSync('./.env.local', `
+NEXT_PUBLIC_CHAIN_ID=31337
+NEXT_PUBLIC_NETWORK=http://localhost:8545
+NEXT_PUBLIC_MULTICALL_ADDRESSES=
+NEXT_PUBLIC_POOL_ADDRESS=${pool.address}
+NEXT_PUBLIC_USDT_ADDRESS=${usdt.address}
+NEXT_PUBLIC_NFT_ADDRESS=${nft.address}
+  `, "utf-8");
 }
 
 module.exports = func
