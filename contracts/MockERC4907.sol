@@ -4,9 +4,12 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 import "./IERC4907.sol";
 
 contract MockERC4907 is ERC721, IERC4907 {
+    using Strings for uint256;
+
     struct UserInfo
     {
         address user;   // address of user role
@@ -15,9 +18,11 @@ contract MockERC4907 is ERC721, IERC4907 {
 
     mapping (uint256  => UserInfo) internal _users;
     uint256 public nextId;
+    string private baseUri;
 
-    constructor(string memory name_, string memory symbol_)
+    constructor(string memory name_, string memory symbol_, string memory baseUri_)
      ERC721(name_,symbol_) {
+        baseUri = baseUri_;
         nextId = 1;
      }
 
@@ -45,6 +50,14 @@ contract MockERC4907 is ERC721, IERC4907 {
         else{
             return address(0);
         }
+    }
+
+    function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
+        return string(abi.encodePacked(_baseURI(), tokenId.toString(), ".json"));
+    }
+
+    function _baseURI() internal view override returns (string memory) {
+        return baseUri;
     }
 
     function mint(address to) external returns(uint256 tokenId) {

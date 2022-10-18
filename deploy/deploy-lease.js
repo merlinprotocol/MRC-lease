@@ -17,11 +17,12 @@ async function func() {
   });
   const usdt = await ethers.getContract('USDT')
 
+  const baseURI = "http://127.0.0.1:3000/metadata/nft-"
   await deployments.deploy('MockERC4907', {
     from: deployer,
     contract: 'MockERC4907',
     log: true,
-    args: ["ERC4907", "NFT"],
+    args: ["ERC4907", "NFT", baseURI],
   });
   const nft = await ethers.getContract('MockERC4907')
 
@@ -72,6 +73,8 @@ async function func() {
   const tokenId = await nft.nextId()
   tx = await nft.mint(deployer)
   await tx.wait()
+  const tokenURI = await nft.tokenURI(tokenId)
+  expect(tokenURI).to.eq(baseURI + '1.json')
 
   tx = await pool.supply([nft.address], [tokenId])
   await tx.wait()

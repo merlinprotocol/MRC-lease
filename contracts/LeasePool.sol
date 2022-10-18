@@ -64,8 +64,8 @@ contract LeasePool is ERC20, Ownable, IPool {
 
       uint256 leasePrior = totalLeaseAmount;
       leasePrior += _leaseAmount;
-      uint256 leaseRate = ILeaseModel(interestRateModel).calcLeaseCost(leasePrior, totalSupplyPrior-leasePrior);
-      return leaseRate;
+      uint256 rentCost = ILeaseModel(interestRateModel).calcLeaseCost(leasePrior, totalSupplyPrior-leasePrior);
+      return rentCost;
     }
 
     /**
@@ -79,7 +79,7 @@ contract LeasePool is ERC20, Ownable, IPool {
         _paid = uli.paid;
     }
 
-    function accrueInterest() public returns (uint256 _blockDelta, uint256 _leaseRate) {
+    function accrueInterest() public returns (uint256 _blockDelta, uint256 _rentCost) {
       uint256 currentBlockNumber = block.number;
       uint256 accrualBlockNumberPrior = accrualBlockNumber;
       if (accrualBlockNumberPrior == currentBlockNumber) {
@@ -93,20 +93,20 @@ contract LeasePool is ERC20, Ownable, IPool {
 
       uint256 leasePrior = totalLeaseAmount;
       uint256 blockDelta = currentBlockNumber - accrualBlockNumberPrior;
-      uint256 leaseRate = ILeaseModel(interestRateModel).calcLeaseCost(leasePrior, totalSupplyPrior-leasePrior);
-      uint256 interestAccumulated = blockDelta * leaseRate * leasePrior / 1e18;
+      uint256 rentCost = ILeaseModel(interestRateModel).calcLeaseCost(leasePrior, totalSupplyPrior-leasePrior);
+      uint256 interestAccumulated = blockDelta * rentCost * leasePrior / 1e18;
       uint256 accProfitPerShareNew = accProfitPerShare + interestAccumulated * 1e18 / totalSupplyPrior;
       accProfitPerShare = accProfitPerShareNew;
       accrualBlockNumber = block.number;
 
-      updateUserLeaseInternal(blockDelta, leaseRate, msg.sender);
+      updateUserLeaseInternal(blockDelta, rentCost, msg.sender);
       
       emit AccrueInterest(interestAccumulated, accProfitPerShare, costPerLeaseShare);
     }
 
-    function updateUserLeaseInternal(uint256 _blockDelta, uint256 _leaseRate, address _user) public {
+    function updateUserLeaseInternal(uint256 _blockDelta, uint256 _rentCost, address _user) public {
       uint256 costPerLeaseShareNew = costPerLeaseShare;
-      costPerLeaseShareNew += _blockDelta * _leaseRate;
+      costPerLeaseShareNew += _blockDelta * _rentCost;
       costPerLeaseShare = costPerLeaseShareNew;
 
       UserLeaseInfo memory uli = userLeaseInfos[_user];
@@ -232,8 +232,8 @@ contract LeasePool is ERC20, Ownable, IPool {
         return balanceOf(owner) * (accProfitPerShare - userProfitPerShare[owner]) / 1e18;
       }
 
-      uint256 leaseRate = ILeaseModel(interestRateModel).calcLeaseCost(leasePrior, totalSupply() - leasePrior);
-      uint256 a = (block.number - accrualBlockNumber) * leaseRate * 1e18 / totalSupplyPrior;
+      uint256 rentCost = ILeaseModel(interestRateModel).calcLeaseCost(leasePrior, totalSupply() - leasePrior);
+      uint256 a = (block.number - accrualBlockNumber) * rentCost * 1e18 / totalSupplyPrior;
       uint256 accProfitPerShareNew = a + accProfitPerShare;
       profit = balanceOf(owner) * (accProfitPerShareNew-userProfitPerShare[owner]) / 1e18;
     }
@@ -242,10 +242,10 @@ contract LeasePool is ERC20, Ownable, IPool {
       @inheritdoc IPool
      */
     function cancelLease(address[] calldata _users) external override {
-      (uint256 _blockDelta, uint256 _leaseRate) = accrueInterest();
+      (uint256 _blockDelta, uint256 _rentCost) = accrueInterest();
       for (uint256 i=0;i<_users.length;++i) {
         address _user = _users[i];
-        updateUserLeaseInternal(_blockDelta, _leaseRate, _user);
+        updateUserLeaseInternal(_blockDelta, _rentCost, _user);
         (uint256 _margin, uint256 _height) = cancelLeaseInternal(_user);
         // require(_height <= block.number, "!period");
         if (_margin > 0) {
@@ -259,9 +259,9 @@ contract LeasePool is ERC20, Ownable, IPool {
      */
     function marginLeft(address _user) external view returns(uint256 _margin) {
       uint256 blockDelta = block.number - accrualBlockNumber;
-      uint256 leaseRate = getLeasePrice(0, 0);
+      uint256 rentCost = getLeasePrice(0, 0);
       uint256 costPerLeaseShareNew = costPerLeaseShare;
-      costPerLeaseShareNew += blockDelta * leaseRate;
+      costPerLeaseShareNew += blockDelta * rentCost;
 
       UserLeaseInfo memory uli = userLeaseInfos[_user];
       uint256 _cost = (costPerLeaseShareNew - uli.costPerLeaseShare) * uli.share / 1e18;
