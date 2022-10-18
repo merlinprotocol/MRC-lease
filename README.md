@@ -3,8 +3,9 @@
 ## Dev
 
 ```bash
-npm run node
-npm run dev
+pnpm install # npm i --force
+pnpm node # npm run node
+pnpm dev # npm run dev
 # http://localhost:3000
 # remove local storage and refresh
 ```

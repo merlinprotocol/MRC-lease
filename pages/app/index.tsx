@@ -1,4 +1,5 @@
 import * as React from 'react';
+import Image from 'next/image';
 import AppBar from '@mui/material/AppBar';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
@@ -39,6 +40,7 @@ import {
   useTotalLeaseAmount,
   useRentChangeYieldUI,
 } from '@/actions/lease-pool';
+import { useOwnerTokenIds, useTokenMetadata } from '@/actions/erc4907';
 import styles from './index.module.scss';
 
 interface TabPanelProps {
@@ -168,9 +170,11 @@ const handleState = (
 
 export default function App() {
   const { account, activateBrowserWallet, deactivate } = useEthers();
-  const [value, setValue] = React.useState(0);
-  const [tokenId, setTokenId] = React.useState('1');
+  const [value, setValue] = React.useState(0); // setlect nft tokenId
+  const [tokenId, setTokenId] = React.useState('');
   const [progress, setProgress] = React.useState(0);
+  const ownerTokenIds = useOwnerTokenIds();
+  const tokenMetadata = useTokenMetadata(tokenId);
 
   const [borrowAmount, setBorrowAmount] = React.useState<number | ''>(1);
 
@@ -182,7 +186,11 @@ export default function App() {
   const borrowChangedYield = useGetLeasePriceUI(0, utils.parseEther(String(borrowAmount || 0)).toString());
   const rentChangeedYield = useRentChangeYieldUI(100);
 
-  const [notify, setNotify] = React.useState<{ severity: AlertColor; open: boolean; message: string }>({
+  const [notify, setNotify] = React.useState<{
+    severity: AlertColor;
+    open: boolean;
+    message: string;
+  }>({
     severity: 'info',
     open: false,
     message: '',
@@ -197,6 +205,10 @@ export default function App() {
   React.useEffect(() => {
     handleState(leaseState, setNotify);
   }, [leaseState]);
+
+  React.useEffect(() => {
+    setTokenId('');
+  }, [account]);
 
   React.useEffect(() => {
     if (totalLeaseAmount && totalSupply && !totalSupply.isZero()) {
@@ -337,16 +349,32 @@ export default function App() {
                       },
                     }}
                   >
-                    <MenuItem value={1}>HashNFT #1</MenuItem>
-                    <MenuItem disabled value={2}>
-                      HashNFT #2
-                    </MenuItem>
-                    <MenuItem disabled value={3}>
-                      HashNFT #3
-                    </MenuItem>
+                    {ownerTokenIds.length ? (
+                      ownerTokenIds.map((id) => (
+                        <MenuItem key={id} value={id}>
+                          HashNFT #{id}
+                        </MenuItem>
+                      ))
+                    ) : (
+                      <Box sx={{ textAlign: 'center' }}>No Data</Box>
+                    )}
                   </Select>
                 </StyledFormControl>
               </Box>
+
+              {tokenId && tokenMetadata && (
+                <Box
+                  sx={{
+                    width: '100%',
+                    height: '400px',
+                    position: 'relative',
+                    textAlign: 'center',
+                    mt: 2,
+                  }}
+                >
+                  <Image src={tokenMetadata.image} layout="fill" objectFit="contain" />
+                </Box>
+              )}
 
               <LoadingButton
                 disabled={!account}
@@ -389,7 +417,9 @@ export default function App() {
                     '& .MuiFormLabel-root': {
                       color: 'primary.main',
                     },
-                    '& .MuiOutlinedInput-notchedOutline': { borderColor: 'primary.main' },
+                    '& .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'primary.main',
+                    },
                     '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'primary.main' },
                   }}
                 />
@@ -447,7 +477,13 @@ export default function App() {
             </TabPanel>
 
             {account && (
-              <Box sx={{ textAlign: 'center', mt: 4, backgroundColor: 'transparent' }}>
+              <Box
+                sx={{
+                  textAlign: 'center',
+                  mt: 4,
+                  backgroundColor: 'transparent',
+                }}
+              >
                 <Typography color="#b2b9d2" variant="caption" display="block" gutterBottom>
                   Account: {account}
                 </Typography>
