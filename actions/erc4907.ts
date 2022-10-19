@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Contract } from 'ethers';
 import { useEthers, useContractFunction, useCall, useCalls, Falsy, Call, addressEqual } from '@usedapp/core';
 import ERC4907Art from '@/artifacts/contracts/MockERC4907.sol/MockERC4907.json';
@@ -92,12 +93,40 @@ export function useOwnerTokenIds(): number[] {
   return ownerIds;
 }
 
+export function useTokenURI(id: number | string) {
+  const contract = useContract();
+
+  const { value, error } =
+    useCall(
+      id
+        ? {
+            contract: contract,
+            method: 'tokenURI',
+            args: [id],
+          }
+        : null,
+    ) ?? {};
+
+  if (!value || error) {
+    return '';
+  }
+  return value?.[0];
+}
+
 export function useTokenMetadata(id: number | string) {
-  const metadata = {
-    description: 'Merlin Protocol:a leading NFTFi infrastructure liquidity protocol.',
-    image: `/nft/nft-${id}.gif`,
-    name: `NFT#${id}`,
-  };
+  const uri = useTokenURI(id);
+  const [metadata, setMetadata] = useState<any>(null);
+
+  useEffect(() => {
+    if (uri) {
+      (async () => {
+        const resposne = await fetch(uri);
+        const res = await resposne.json();
+
+        setMetadata(res);
+      })();
+    }
+  }, [uri]);
 
   return metadata;
 }

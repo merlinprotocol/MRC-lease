@@ -21,9 +21,10 @@ import Chip from '@mui/material/Chip';
 import Avatar from '@mui/material/Avatar';
 import LinearProgress, { LinearProgressProps } from '@mui/material/LinearProgress';
 import { styled } from '@mui/material/styles';
+import CountUp from 'react-countup';
 
 import { utils } from 'ethers';
-import { useEthers, shortenAddress, TransactionStatus } from '@usedapp/core';
+import { useEthers, shortenAddress, TransactionStatus, useBlockNumber } from '@usedapp/core';
 import { MetamaskFoxIcon } from '@/components/icons/index';
 
 import {
@@ -169,12 +170,14 @@ const handleState = (
 };
 
 export default function App() {
+  const blockNumber = useBlockNumber();
   const { account, activateBrowserWallet, deactivate } = useEthers();
   const [value, setValue] = React.useState(0); // setlect nft tokenId
   const [tokenId, setTokenId] = React.useState('');
   const [progress, setProgress] = React.useState(0);
   const ownerTokenIds = useOwnerTokenIds();
   const tokenMetadata = useTokenMetadata(tokenId);
+  const pendingProfit = usePendingProfit();
 
   const [borrowAmount, setBorrowAmount] = React.useState<number | ''>(1);
 
@@ -198,6 +201,7 @@ export default function App() {
 
   const { send: callSupply, supplyState } = useCallSupply();
   const { send: callLease, approveState, leaseState } = useCallLease();
+  const { send: claimSupplyProfit, state: claimSupplyProfitState } = useContractFunctionByName('claimSupplyProfit');
 
   React.useEffect(() => {
     handleState(supplyState, setNotify);
@@ -205,6 +209,9 @@ export default function App() {
   React.useEffect(() => {
     handleState(leaseState, setNotify);
   }, [leaseState]);
+  React.useEffect(() => {
+    handleState(claimSupplyProfitState, setNotify);
+  }, [claimSupplyProfitState]);
 
   React.useEffect(() => {
     setTokenId('');
@@ -372,7 +379,7 @@ export default function App() {
                     mt: 2,
                   }}
                 >
-                  <Image src={tokenMetadata.image} layout="fill" objectFit="contain" />
+                  <Image src={tokenMetadata?.image} layout="fill" objectFit="contain" />
                 </Box>
               )}
 
@@ -484,8 +491,19 @@ export default function App() {
                   backgroundColor: 'transparent',
                 }}
               >
-                <Typography color="#b2b9d2" variant="caption" display="block" gutterBottom>
+                <Typography color="#b2b9d2" display="block" gutterBottom>
                   Account: {account}
+                </Typography>
+
+                <Typography color="#b2b9d2" display="block" gutterBottom>
+                  Block: <CountUp preserveValue={true} end={Number(blockNumber)} />
+                </Typography>
+
+                <Typography color="#b2b9d2" display="block" gutterBottom>
+                  Yield: <CountUp decimals={8} preserveValue={true} end={Number(pendingProfit)} /> USDT
+                  <Button size="small" variant="contained" onClick={() => claimSupplyProfit()} sx={{ ml: 2 }}>
+                    Claim
+                  </Button>
                 </Typography>
 
                 <Button size="small" variant="text" onClick={deactivate}>
